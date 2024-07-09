@@ -2,6 +2,8 @@
 
 This application, developed with Streamlit and OpenAI, allows you to generate central texts and posts for platforms like Instagram and LinkedIn, as well as images based on custom prompts.
 
+You can try here: https://rss-publications.streamlit.app/
+
 ## Features
 
 - **Central Text Generation**: Enter a topic and get a 300-word text about it.
