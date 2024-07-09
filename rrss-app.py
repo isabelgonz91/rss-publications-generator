@@ -1,63 +1,59 @@
 import streamlit as st
-import openai
+from openai import OpenAI
+import os
 
-def generate_central_text(topic, api_key, model):
-    openai.api_key = api_key
+def generate_central_text(topic, client, model):
+    
     messages = [
         {"role": "system", "content": "Eres un asistente que escribe textos en español."},
         {"role": "user", "content": f"Genera un texto de 300 palabras sobre el tema: {topic}"}
     ]
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model=model,
         messages=messages,
         max_tokens=600,
         temperature=0.5
     )
-    central_text = response.choices[0].message['content'].strip()
+    central_text = response.choices[0].message.content.strip()
     return central_text
 
-def generate_instagram_post(text, api_key, prompt_template, model):
-    openai.api_key = api_key
+def generate_instagram_post(text, client, prompt_template, model):
     prompt = prompt_template.format(text=text)
-    
     messages = [
         {"role": "system", "content": "Eres un asistente que escribe publicaciones para Instagram en español de 100 palabras."},
         {"role": "user", "content": prompt}
     ]
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model=model,
         messages=messages,
         max_tokens=300,
         temperature=0.5
     )
-    post = response.choices[0].message['content'].strip()
+    post = response.choices[0].message.content.strip()
     return post
 
-def generate_linkedin_post(text, api_key, prompt_template, model):
-    openai.api_key = api_key
+def generate_linkedin_post(text, client, prompt_template, model):
     prompt = prompt_template.format(text=text)
-    
     messages = [
         {"role": "system", "content": "Eres un asistente que escribe publicaciones para LinkedIn en español de 300 palabras."},
         {"role": "user", "content": prompt}
     ]
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model=model,
         messages=messages,
         max_tokens=600,
         temperature=0.5
     )
-    post = response.choices[0].message['content'].strip()
+    post = response.choices[0].message.content.strip()
     return post
 
-def generate_image(prompt, api_key):
-    openai.api_key = api_key
-    response = openai.Image.create(
+def generate_image(prompt, client):
+    response = client.images.generate(
         prompt=prompt,
         n=1,
         size="1024x1024"
     )
-    image_url = response['data'][0]['url']
+    image_url = response.data[0].url
     return image_url
 
 st.set_page_config(
@@ -96,6 +92,9 @@ tab1, tab2 = st.tabs(["Generador de Publicaciones", "Configuración"])
 with tab1:
     # Paso 1: Generar texto central
     if st.session_state.step == 1:
+        client = OpenAI(
+            api_key=st.session_state.openai_api_key,
+        )
         topic_input = st.text_input("Introduce el tema para generar el texto central")
 
         if topic_input:
@@ -103,7 +102,7 @@ with tab1:
                 submitted = st.form_submit_button("Generar Texto")
                 if submitted and st.session_state.openai_api_key.startswith("sk-"):
                     st.session_state.topic_input = topic_input
-                    central_text = generate_central_text(topic_input, st.session_state.openai_api_key, st.session_state.model)
+                    central_text = generate_central_text(topic_input, client, st.session_state.model)
                     st.session_state.central_text = central_text
                     st.session_state.step = 2
 
@@ -117,6 +116,9 @@ with tab1:
 
     # Paso 3: Generar publicación para la plataforma seleccionada
     if st.session_state.step == 3:
+        client = OpenAI(
+            api_key=st.session_state.openai_api_key,
+        )
         st.write("### Texto Central Generado")
         st.write(st.session_state.central_text)
         with st.form("post_generation_form", clear_on_submit=True):
@@ -127,14 +129,14 @@ with tab1:
                     if platform == "Instagram":
                         post_text = generate_instagram_post(
                             st.session_state.central_text, 
-                            st.session_state.openai_api_key, 
+                            client, 
                             st.session_state.instagram_prompt_template, 
                             st.session_state.model
                         )
                     elif platform == "LinkedIn":
                         post_text = generate_linkedin_post(
                             st.session_state.central_text, 
-                            st.session_state.openai_api_key, 
+                            client, 
                             st.session_state.linkedin_prompt_template, 
                             st.session_state.model
                         )
@@ -152,7 +154,7 @@ with tab1:
 
         generate_image_button = st.button("Generar Imagen")
         if generate_image_button and image_prompt:
-            image_url = generate_image(image_prompt, st.session_state.openai_api_key)
+            image_url = generate_image(image_prompt, client)
             st.image(image_url, caption="Imagen Generada por DALL-E")
 
 with tab2:
